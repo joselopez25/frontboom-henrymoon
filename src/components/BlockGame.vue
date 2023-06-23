@@ -25,8 +25,8 @@ onBeforeUnmount(() => {
   socket.disconnect();
 });
 
-const socket = io("https://serverboomparty.onrender.com/")    //PARA DEPLOY
-/* const socket = io("http://localhost:3002/") */
+/* const socket = io("https://serverboomparty.onrender.com/") */    //PARA DEPLOY
+const socket = io("http://localhost:3002/")
 
 
 onMounted(() => {
@@ -288,9 +288,9 @@ const endGame = ()=>{
   ctx.value.fillText('Ganador: ' + ganador.value, centerX,centerY)
 }
 
-
-
 });
+
+
 
 const salida = ()=>{
   clearInterval(countdownInterval);
@@ -300,7 +300,6 @@ const salida = ()=>{
 onUnmounted(()=>{
   salida()
 })
-
 
 const init = ()=>{
   socket.emit('inicio');
@@ -319,6 +318,7 @@ const handleSubmit = ()=>{
     socket.emit("siguiente", contador.value)
   }
 }
+
 </script>
 
 <template>
@@ -334,7 +334,7 @@ const handleSubmit = ()=>{
         <input placeholder="Ingresa palabra" v-model="palabra"/>
         <button @click="handleSubmit">Enviar</button>
         <!-- <button @click="">Terminar Turno</button> -->
-        <router-link to="/"><button @click="salida">Salir</button></router-link>
+        <router-link @click="salida" to="/"><button >Salir</button></router-link>
       </fieldset>
   </div>
 </template>
