@@ -12,9 +12,9 @@ const handleSubmit = (event)=>{
   console.log(user.value);
 }
 
-const socket = io("https://serverboomparty.onrender.com/")  
 const router = useRouter();
 
+const socket = io("https://serverboomparty.onrender.com/")  
 /* const socket = io("http://localhost:3002/") */
 socket.on('val', ()=>{
   console.log('valido');
