@@ -1,0 +1,24 @@
+{
+  "name": "juego",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "rae": "^1.0.3",
+    "rae-api": "^1.5.3",
+    "socket.io": "^4.6.2",
+    "socket.io-client": "^4.6.2",
+    "vue": "^3.2.47",
+    "vue-router": "^4.2.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.1.0",
+    "vite": "^4.3.9"
+  }
+}
