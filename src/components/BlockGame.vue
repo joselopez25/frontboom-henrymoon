@@ -25,8 +25,8 @@ onBeforeUnmount(() => {
   socket.disconnect();
 });
 
-const socket = io("https://serverboomparty.onrender.com/")//PARA DEPLOY
-/* const socket = io("http://localhost:3002/") */
+/* const socket = io("https://serverboomparty.onrender.com/")  */   //PARA DEPLOY
+const socket = io("http://localhost:3002/")
 
 
 onMounted(() => {
@@ -189,9 +189,10 @@ const timer = ()=>{
     
     if(props.name === turno.value){
       countdown--;
+      socket.emit('count', countdown)
       console.log('Tiempo restante:', countdown);
     }
-      if (countdown <= 1) {
+      if (countdown <= 0) {
         // El tiempo ha expirado, pasar al siguiente jugador automáticamente
         endTurn();
         personas.value[currentPlayer.value].vidas--
@@ -209,6 +210,15 @@ const timer = ()=>{
   //END
 }
 
+
+socket.on('count', (data)=>{
+  ctx.value.font = '30px Arial'
+  ctx.value.fillStyle= 'white'
+  ctx.value.textAlign = 'center'
+  ctx.value.clearRect(890,20,40, 40)
+  /* ctx.value.fillRect(890,20,40, 40)  */
+  ctx.value.fillText(data, 910,50)
+})
 /* watch(turno.value,()=>{
   console.log(personas.value);
   for(let i = 0; i <= personas.value[currentPlayer.value].vidas; i++){
