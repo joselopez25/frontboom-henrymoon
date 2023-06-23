@@ -14,8 +14,8 @@ const handleSubmit = (event)=>{
 
 const router = useRouter();
 
-/* const socket = io("https://serverboomparty.onrender.com/")   */
-const socket = io("http://localhost:3002/")
+const socket = io("https://serverboomparty.onrender.com/")  
+/* const socket = io("http://localhost:3002/") */
 socket.on('val', ()=>{
   console.log('valido');
   router.push(`/game/${usuario.value}`)
