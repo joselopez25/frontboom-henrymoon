@@ -21,12 +21,12 @@ let contador = ref(0);
 const ganador = ref('')
 const currentPlayer = ref(0);
 let countdownInterval = null;
-onBeforeUnmount(() => {
-  socket.disconnect();
+onUnmounted(() => {
+  salida()
 });
 
-const socket = io("https://serverboomparty.onrender.com/")    //PARA DEPLOY
-/* const socket = io("http://localhost:3002/") */
+/* const socket = io("https://serverboomparty.onrender.com/") */    //PARA DEPLOY
+const socket = io("http://localhost:3002/")
 
 
 onMounted(() => {
