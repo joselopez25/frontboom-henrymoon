@@ -30,8 +30,8 @@ let animate = null;
 let escala = true
 
 const router = useRouter();
-/* const socket = io("https://serverboomparty.onrender.com/")  */   //PARA DEPLOY
-const socket = io("http://localhost:3002/")
+const socket = io("https://serverboomparty.onrender.com/")    //PARA DEPLOY
+/* const socket = io("http://localhost:3002/") */
 
 const errors = new Audio(error)
 const bomb = new Audio(bombSound) 
