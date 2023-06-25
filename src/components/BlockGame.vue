@@ -1,37 +1,45 @@
 <script setup>
-
+import {useRouter} from 'vue-router'
+import bombSound  from '../sound/bomba.mp3'
+import crono from '../sound/crono.mp3'
+import error from '../sound/error.mp3'
 import { io } from "socket.io-client";
-import { ref, onMounted,  onBeforeUnmount, onUnmounted, watch} from 'vue';
+import { ref, onMounted, onUnmounted, watch, onBeforeMount} from 'vue';
 import bomba from '../assets/bomba.png'
 import corz from '../assets/crz.png'
 import flecha from '../assets/flecha.png'
-const props = defineProps(['name'])
-const canvas = ref(null);
-const noLive = ref([])
-const ctx = ref(null)
-const palabra = ref('')
-const palVivo = ref('')
-const user = ref('')
-const turno = ref('')
-const angPer = ref([])
+import win from '../assets/win.png'
+let props = defineProps(['name'])
+let canvas = ref(null);
+let noLive = ref([])
+let ctx = ref(null)
+let palabra = ref('')
+let palVivo = ref('')
+let user = ref('')
+let turno = ref('')
+let angPer = ref([])
 let silaba = ref('')
 let personas = ref([])
 let personsName = ref([])
 let contador = ref(0);
-const ganador = ref('')
-const currentPlayer = ref(0);
+let time = ref(0)
+let ganador = ref('')
+let currentPlayer = ref(0);
 let countdownInterval = null;
-onUnmounted(() => {
-  salida()
-});
+let animate = null;
+let escala = true
 
-const socket = io("https://serverboomparty.onrender.com/")    //PARA DEPLOY
-/* const socket = io("http://localhost:3002/") */
+const router = useRouter();
+/* const socket = io("https://serverboomparty.onrender.com/")  */   //PARA DEPLOY
+const socket = io("http://localhost:3002/")
 
-
+const errors = new Audio(error)
+const bomb = new Audio(bombSound) 
+bomb.volume = 0.3
+const bombImg = new Image();
+bombImg.src = bomba
 onMounted(() => {
-  
-  ctx.value = canvas.value.getContext('2d');
+  ctx.value = canvas.value.getContext('2d');  
   socket.emit("name", props.name)
   socket.emit("generate")
   const centerX = canvas.value.width / 2;
@@ -70,18 +78,18 @@ onMounted(() => {
     })
   
   socket.on('people', data=>{
-    console.log(data);
-    ctx.value.clearRect(0,0,canvas.value.width, canvas.value.height)
+    console.log('personas: ' + data);
+    ctx.value.clearRect(0,0,canvas.value?.width, canvas.value?.height)
     personas.value = data
     data.forEach(persona =>{
       personsName.value = [...personsName.value, persona.name]
       personsName.value = new Set(personsName.value)
       personsName.value =  [...personsName.value]
     })
-    const image = new Image();
-    image.src = bomba
-    image.onload= ()=>{
-      ctx.value.drawImage(image,centerX-30,centerY-60,100,100)
+    
+    bombImg.src = bomba
+    bombImg.onload= ()=>{
+      ctx.value.drawImage(bombImg,centerX-45,centerY-60,100,100)
     }
 
     const radius = 180;
@@ -93,54 +101,42 @@ onMounted(() => {
       const x = centerX + Math.cos(angle) * radius;
       const y = centerY + Math.sin(angle) * radius;
       angPer.value = [...angPer.value, {name: person.name, x: x, y: y}]
-     /*  let hash = {}
-      angPer.value = angPer.value.filter(person => hash[person.name] ? false : hash[person.name] = true ) */
       console.log(angPer.value);
-      /* const crz = new Image();
-      crz.src = corz */
       ctx.value.beginPath();
       ctx.value.arc(x, y, 25, 0, Math.PI*2);
       ctx.value.fillStyle='white';
-
       ctx.value.fill();
       ctx.value.closePath();
-      /* crz.onload= ()=>{
-        for(let i = 1; i <= person.vidas; i++){
-          ctx.value.drawImage(crz,i<=1?x-21:x+1,y+15,20,20)
-        }
-      } */
-      
       ctx.value.font = '16px Arial'
       ctx.value.fillStyle= 'black'
       ctx.value.textAlign = 'center'
       ctx.value.fillText(person.name, x, y+6)
-
-
       socket.on('envivo', data=>{
         palVivo.value= data
-        if(person.name === props.name){
-          ctx.value.font = '20px Arial'
-          ctx.value.fillStyle= 'white'
-          ctx.value.textAlign = 'center'
-       /*    ctx.value.fillRect(x-130,y+40,300, 25) */ 
-          ctx.value.clearRect(x-130,y+60,300, 25)
-          ctx.value.fillText(data, x, y+80)
-        }
       })
       
     })
-  /*   vidas()  */
   })
   socket.on('user', (data) =>{
     user.value = data
   });
 
+  socket.on('sound', ()=>{
+    if(noLive.value.length===personas.value.length-1)return
+    let cronometro = new Audio(crono)
+    cronometro.volume = 0.3
+    cronometro.play()
+  })
+
   socket.on('changeTurn', (nextPlayer) => {
-    vidas()
-    if(noLive.value.length===personas.value.length-1){
+    if(personas.value.length==1 || noLive.value.length===personas.value.length-1){
       clearInterval(countdownInterval);
       return socket.emit('endGame')
     }
+    clearInterval(animate)
+    socket.emit('sound')
+    vidas()
+    animate = setInterval(animateBomb,300)
     if(noLive.value.includes(nextPlayer)){
       return endTurn();
     }
@@ -148,7 +144,6 @@ onMounted(() => {
     // Reiniciar el temporizador para el nuevo turno
     resetTimer();
   });
-
 
 
 
@@ -168,7 +163,7 @@ onMounted(() => {
 
 socket.on('updateVidas',(data)=>{
   personas.value = data
-  
+  bomb.play();
   vidas()
 })
 
@@ -176,9 +171,30 @@ socket.on('updateNoLive',(data)=>{
   noLive.value = data
 })
 
+const animateBomb = ()=>{
+  /* ctx.value.clearRect(centerX-55,centerY-62,120, 110) */
+  bombImg.src = bomba
+  bombImg.onload= ()=>{
+    if(escala){
+      ctx.value.clearRect(centerX-55,centerY-68,120, 120)
+      /* ctx.value.fillRect(centerX-55,centerY-68,120, 120) */
+      ctx.value.drawImage(bombImg,centerX-45,centerY-60,100,100)
+      escala = false
+    }else{
+      ctx.value.clearRect(centerX-55,centerY-68,120, 120)
+      /* ctx.value.fillRect(centerX-55,centerY-68,120, 120) */
+      ctx.value.drawImage(bombImg,centerX-50,centerY-65,115,115)
+      escala = true
+    }
+  }
+}
+
+
 
 const timer = ()=>{
   //NEW
+  if(noLive.value.length===personas.value.length-1)return
+  
   personas.value.forEach((person, index)=> {
     if(person.name === props.name){
       currentPlayer.value = index
@@ -192,14 +208,14 @@ const timer = ()=>{
       socket.emit('count', countdown)
       console.log('Tiempo restante:', countdown);
     }
-      if (countdown <= 0) {
-        // El tiempo ha expirado, pasar al siguiente jugador automáticamente
-        endTurn();
-        personas.value[currentPlayer.value].vidas--
-        socket.emit('updateVidas', personas.value)     
-        personas.value.forEach(persona => {
+    if (countdown <= 0) {
+      // El tiempo ha expirado, pasar al siguiente jugador automáticamente
+      endTurn();
+      personas.value[currentPlayer.value].vidas--
+      socket.emit('updateVidas', personas.value)     
+      personas.value.forEach(persona => {
         if(persona.vidas === 0){
-            noLive.value = [...noLive.value, persona.name]
+          noLive.value = [...noLive.value, persona.name]
             noLive.value = new Set(noLive.value)
             noLive.value =  [...noLive.value]
             socket.emit('updateNoLive', noLive.value)
@@ -207,57 +223,18 @@ const timer = ()=>{
         });
       }
     }, 1000);
-  //END
-}
-
-
-socket.on('count', (data)=>{
-  ctx.value.font = '30px Arial'
-  ctx.value.fillStyle= 'white'
-  ctx.value.textAlign = 'center'
-  ctx.value.clearRect(890,20,40, 40)
-  /* ctx.value.fillRect(890,20,40, 40)  */
-  ctx.value.fillText(data, 910,50)
-})
-/* watch(turno.value,()=>{
-  console.log(personas.value);
-  for(let i = 0; i <= personas.value[currentPlayer.value].vidas; i++){
-    if(personas.value[currentPlayer.value].vidas === 1){
-      ctx.value.clearRect(angPer.value[currentPlayer.value].x-21,angPer.value[currentPlayer.value].y+30,20,20)
-    }else if (personas.value[currentPlayer.value].vidas === 0){
-      ctx.value.clearRect(angPer.value[currentPlayer.value].x+1,angPer.value[currentPlayer.value].y+30,20,20)
-    }
+    //END
   }
-}) */
-
-
-/* const initTurn = (data)=>{
   
-  currentPlayer.value = data;
-  turno.value = personas.value[data].name
-  // Reiniciar el temporizador para el nuevo turno
-  vidas()
-  socket.emit('endTurn');
-} */
+
+  socket.on('count', (data)=>{
+    time.value = data
+  })
+  
 const resetTimer = () => {
   clearInterval(countdownInterval);
   timer()
 };
-
-
-/* socket.on('turno', data=>{
-  console.log(data.name);
-  turno.value = data.name
-  clearTimeout(func.value)
-  func.value = setTimeout(timer,10000)
-}) */
-
-
-/* socket.on('inicio', (data)=>{
-  
-}) */
-
-////////
 
 watch(palabra, ()=>{
   if(palabra.value.length <20){
@@ -270,6 +247,7 @@ socket.on('endGame', ()=>{
 })
 
 const endGame = ()=>{
+  clearInterval(animate)
   clearInterval(countdownInterval);
   personas.value.forEach(person =>{
     if(!noLive.value.includes(person.name)){
@@ -278,17 +256,29 @@ const endGame = ()=>{
       return ganador.value = person.name
     }
   })
-  ctx.value.clearRect(0,0,canvas.value.width, canvas.value.height)
+  ctx.value.clearRect(0,0,canvas.value?.width, canvas.value?.height)
   ctx.value.font = '30px Arial'
   ctx.value.fillStyle= 'white'
   ctx.value.textAlign = 'center'
   /*    ctx.value.fillRect(x-130,y+40,300, 25) */ 
   ctx.value.fillText('Ganador: ' + ganador.value, centerX,centerY)
-  ctx.value.clearRect(0,0,canvas.value.width, canvas.value.height)
-  ctx.value.fillText('Ganador: ' + ganador.value, centerX,centerY)
+  ctx.value.clearRect(0,0,canvas.value?.width, canvas.value?.height)
+  ctx.value.fillText('Ganador: ' + ganador.value, centerX,centerY+200)
+
+  const winer = new Image();
+  winer.src = win
+  winer.onload= ()=>{
+    ctx.value.drawImage(winer,centerX-100,centerY-200,winer.width/7,winer.height/7)
+  }
+  
+  setTimeout(()=>{
+    location.reload()
+    /* router.push(`/`) */
+  }, 5000)
 }
 
 });
+
 
 
 
@@ -298,6 +288,7 @@ const salida = ()=>{
 }
 
 onUnmounted(()=>{
+  
   salida()
 })
 
@@ -316,14 +307,19 @@ const handleSubmit = ()=>{
     socket.emit("generate")
     palabra.value = ''
     socket.emit("siguiente", contador.value)
+  }else{
+    errors.volume = 0.8
+    errors.play()
   }
 }
+
 
 </script>
 
 <template>
   <div>
     <div>
+      <h3>Tiempo: {{ time }}</h3>
       <p v-if="props.name === turno">Es tu turno </p>
       <p v-else>Es turno de: {{ turno }}</p>
       <button v-if="props.name === 'Jose'" @click="init">Comenzar</button>

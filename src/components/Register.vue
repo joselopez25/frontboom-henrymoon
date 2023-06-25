@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { io } from "socket.io-client";
 import {useRouter} from 'vue-router'
 const usuario = ref('')
@@ -9,20 +9,28 @@ const handleSubmit = (event)=>{
   event.preventDefault();
   user.value= usuario.value
   socket.emit('val', user.value)
+  
   console.log(user.value);
 }
 
 const router = useRouter();
 
-const socket = io("https://serverboomparty.onrender.com/")  
-/* const socket = io("http://localhost:3002/") */
+/* const socket = io("https://serverboomparty.onrender.com/")   */
+const socket = io("http://localhost:3002/")
 socket.on('val', ()=>{
-  console.log('valido');
+  socket.emit("name", user.value)
+})
+
+socket.on('ingreso', ()=>{
   router.push(`/game/${usuario.value}`)
 })
 socket.on('inval',()=>{
   console.log('invalido');
   error.value = 'Ya existe alguien con tu ID'
+})
+
+onMounted(()=>{
+  /* location.reload() */
 })
 
 
