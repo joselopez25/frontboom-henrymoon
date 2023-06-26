@@ -321,7 +321,7 @@ const handleSubmit = ()=>{
 </script>
 
 <template>
-  <div>
+  <div class="box">
     <div class="info">
       <h3>Palabra: {{ palVivo }}</h3>
       <h3>Tiempo: {{ time }}</h3>
@@ -339,6 +339,11 @@ const handleSubmit = ()=>{
 </template>
 
 <style scoped>
+
+.box{
+  position: relative;
+  margin-top: 0px;
+}
 .info{
   display: flex;
   flex-direction: row;
