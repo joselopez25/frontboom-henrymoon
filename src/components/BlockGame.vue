@@ -344,7 +344,7 @@ const handleSubmit = ()=>{
   scale: 0.9;
   position: absolute;
   top: 30px;
-  left: 10px;
+  left: 7%;
 }
 .info{
   display: flex;
