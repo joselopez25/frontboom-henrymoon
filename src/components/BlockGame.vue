@@ -4,11 +4,14 @@ import bombSound  from '../sound/bomba.mp3'
 import crono from '../sound/crono.mp3'
 import error from '../sound/error.mp3'
 import { io } from "socket.io-client";
-import { ref, onMounted, onUnmounted, watch, onBeforeMount} from 'vue';
+import { ref, onMounted, onUnmounted, watch, onBeforeMount, nextTick} from 'vue';
 import bomba from '../assets/bomba.png'
 import corz from '../assets/crz.png'
 import flecha from '../assets/flecha.png'
 import win from '../assets/win.png'
+const inputRef = ref(null)
+const inputs = ref(null)
+let button = ref(true)
 let props = defineProps(['name'])
 let canvas = ref(null);
 let noLive = ref([])
@@ -58,23 +61,23 @@ onMounted(() => {
     ctx.value.clearRect(centerX-15,centerY+65,70, 50)
     ctx.value.fillText(sil,centerX+15,centerY+100)
   })
-
+  inputs.value.disabled = true
   watch(turno,()=>{
-      angPer.value.forEach(persona => {
-        ctx.value.clearRect(persona.x-20,persona.y-55,40,30)
-        if(persona.name === turno.value){
-          const fetch = new Image();
-          fetch.src = flecha
-          fetch.onload= ()=>{
+    angPer.value.forEach(persona => {
+      ctx.value.clearRect(persona.x-20,persona.y-55,40,30)
+      if(persona.name === turno.value){
+        const fetch = new Image();
+        fetch.src = flecha
+        fetch.onload= ()=>{
             ctx.value.drawImage(fetch,persona.x-15,persona.y-50,30,20)
           }
         }
       });
-      let form = document.querySelector("#field")
-      form.disabled = false
+      inputs.value.disabled = false
       if(props.name !== turno.value || personas.value[currentPlayer.value].vidas===0){
-       return form.disabled = true
+        inputs.value.disabled = true
       }
+      inputRef.value.focus()
     })
   
   socket.on('people', data=>{
@@ -288,11 +291,12 @@ const salida = ()=>{
 }
 
 onUnmounted(()=>{
-  
+  button.value = true
   salida()
 })
 
 const init = ()=>{
+  button.value = false
   socket.emit('inicio');
 }
 
@@ -318,22 +322,97 @@ const handleSubmit = ()=>{
 
 <template>
   <div>
-    <div>
+    <div class="info">
+      <h3>Palabra: {{ palVivo }}</h3>
       <h3>Tiempo: {{ time }}</h3>
-      <p v-if="props.name === turno">Es tu turno </p>
-      <p v-else>Es turno de: {{ turno }}</p>
-      <button v-if="props.name === 'Jose'" @click="init">Comenzar</button>
-      <canvas ref="canvas" width="1000" height="600" style="border: 1px solid white;"></canvas>
+      <h3 v-if="props.name === turno">Es tu turno </h3>
+      <h3 v-else>Es turno de: {{ turno }}</h3>
+      <button class="play" v-if="props.name === 'Jose' && button" @click="init">Comenzar</button>
+      <router-link @click="salida" to="/" ><button  class="boton">Salir</button></router-link>
     </div>
-    <p>Palabra: {{ palVivo }}</p>
-      <fieldset id="field">
-        <input placeholder="Ingresa palabra" v-model="palabra"/>
-        <button @click="handleSubmit">Enviar</button>
-        <!-- <button @click="">Terminar Turno</button> -->
-        <router-link @click="salida" to="/"><button >Salir</button></router-link>
+    <canvas class="canvas" ref="canvas" width="1000" height="600" ></canvas>
+      <fieldset ref="inputs" class="inputs">
+        <input class="input" ref="inputRef" @keydown.enter="handleSubmit" placeholder="Ingresa palabra" v-model="palabra"/>
+        <button class="envia" @click="handleSubmit">Enviar</button>
       </fieldset>
   </div>
 </template>
 
 <style scoped>
+.info{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  text-align: center;
+  justify-content: space-around;
+}
+
+.canvas{
+  border: 2px solid #F2E500;
+  border-radius: 10px;
+}
+
+.boton{
+  background-color: rgb(189, 0, 0);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+.boton:hover {
+  border-color: #600000;
+}
+
+.play{
+  background-color: rgb(0, 57, 20);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+.play:hover {
+  border-color: #00bd00;
+}
+
+.input{
+  width: 300px;
+  height: 30px;
+  margin-right: 10px;
+  border: 2px solid #fefefe;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+.inputs{
+  border: 2px solid #F2E500;
+  border-radius: 10px;
+}
+
+.envia{
+  background-color: #2d2d2d;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+.envia:hover {
+  border-color: #ffffff;
+}
+
+
+
+
 </style>
