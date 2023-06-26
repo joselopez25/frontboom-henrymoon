@@ -341,8 +341,9 @@ const handleSubmit = ()=>{
 <style scoped>
 
 .box{
-  position: relative;
-  margin-top: 0px;
+  position: absolute;
+  top: 30px;
+  left: 20%;
 }
 .info{
   display: flex;
