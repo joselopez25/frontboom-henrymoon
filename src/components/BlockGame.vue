@@ -1,4 +1,5 @@
 <script setup>
+import {words} from '../data/data.js'
 import {useRouter} from 'vue-router'
 import bombSound  from '../sound/bomba.mp3'
 import crono from '../sound/crono.mp3'
@@ -28,39 +29,35 @@ let contador = ref(0);
 let time = ref(0)
 let ganador = ref('')
 let currentPlayer = ref(0);
-let countdownInterval = null;
+let countdownInterval = ref(null);
 let animate = null;
 let escala = true
 
 const router = useRouter();
-const socket = io("https://serverboomparty.onrender.com/")    //PARA DEPLOY
-/* const socket = io("http://localhost:3002/") */
+/* const socket = io("https://serverboomparty.onrender.com/") */    //PARA DEPLOY
+const socket = io("http://localhost:3002/")
 
 const errors = new Audio(error)
 const bomb = new Audio(bombSound) 
 bomb.volume = 0.3
 const bombImg = new Image();
 bombImg.src = bomba
+
 onMounted(() => {
   ctx.value = canvas.value.getContext('2d');  
   socket.emit("name", props.name)
-  socket.emit("generate")
   const centerX = canvas.value.width / 2;
   const centerY = canvas.value.height / 2;
 
-  socket.on('sil', data=>{
-    const sil = data.normalize('NFD').replace(/[\u0300-\u036f]/g, "");
-    if(sil.length === 0 || sil.includes(',') || sil.includes('-')){
-      return socket.emit("generate")
-    }
-    silaba.value = sil.toLowerCase()
+  watch(silaba, ()=>{
+    console.log('cambio');
     ctx.value.font = '30px Arial'
     ctx.value.fillStyle= 'white'
-    console.log(sil);
     ctx.value.textAlign = 'center'
     ctx.value.clearRect(centerX-15,centerY+65,70, 50)
-    ctx.value.fillText(sil,centerX+15,centerY+100)
+    ctx.value.fillText(silaba.value,centerX+15,centerY+100)
   })
+
   inputs.value.disabled = true
   watch(turno,()=>{
     angPer.value.forEach(persona => {
@@ -79,9 +76,8 @@ onMounted(() => {
       }
       inputRef.value.focus()
     })
-  
-  socket.on('people', data=>{
-    console.log('personas: ' + data);
+    socket.on('people', data=>{
+      console.log('personas: ' + data);
     ctx.value.clearRect(0,0,canvas.value?.width, canvas.value?.height)
     personas.value = data
     data.forEach(persona =>{
@@ -123,17 +119,17 @@ onMounted(() => {
   socket.on('user', (data) =>{
     user.value = data
   });
-
+  
   socket.on('sound', ()=>{
     if(noLive.value.length===personas.value.length-1)return
     let cronometro = new Audio(crono)
     cronometro.volume = 0.3
     cronometro.play()
   })
-
+  
   socket.on('changeTurn', (nextPlayer) => {
     if(personas.value.length==1 || noLive.value.length===personas.value.length-1){
-      clearInterval(countdownInterval);
+      clearInterval(countdownInterval.value);
       return socket.emit('endGame')
     }
     clearInterval(animate)
@@ -147,27 +143,25 @@ onMounted(() => {
     // Reiniciar el temporizador para el nuevo turno
     resetTimer();
   });
-
-
-
-  const vidas =()=>{
-  personas.value.forEach((persona,index) => {
     
-    const crz = new Image();
-    crz.src = corz
-    crz.onload= ()=>{
-      ctx.value.clearRect(angPer.value[index].x-21,angPer.value[index].y+30,100,20)
-      for(let i = 1; i <= persona.vidas; i++){
-        ctx.value.drawImage(crz,i<=1?angPer.value[index].x-21:angPer.value[index].x+1,angPer.value[index].y+30,20,20)
+  const vidas =()=>{
+    personas.value.forEach((persona,index) => {
+      
+      const crz = new Image();
+      crz.src = corz
+      crz.onload= ()=>{
+        ctx.value.clearRect(angPer.value[index].x-21,angPer.value[index].y+30,100,20)
+        for(let i = 1; i <= persona.vidas; i++){
+          ctx.value.drawImage(crz,i<=1?angPer.value[index].x-21:angPer.value[index].x+1,angPer.value[index].y+30,20,20)
+        }
       }
+    })
   }
-})
-}
-
-socket.on('updateVidas',(data)=>{
-  personas.value = data
-  bomb.play();
-  vidas()
+  
+  socket.on('updateVidas',(data)=>{
+    personas.value = data
+    bomb.play();
+    vidas()
 })
 
 socket.on('updateNoLive',(data)=>{
@@ -196,31 +190,31 @@ const animateBomb = ()=>{
 
 const timer = ()=>{
   //NEW
-  if(noLive.value.length===personas.value.length-1)return
+  if(noLive.value.length===personas.value.length-1){return}
   
   personas.value.forEach((person, index)=> {
     if(person.name === props.name){
-      currentPlayer.value = index
+      return currentPlayer.value = index
     }
   });
   let countdown = 10;
-  countdownInterval = setInterval(() => {
+  countdownInterval.value = setInterval(() => {
     
     if(props.name === turno.value){
       countdown--;
       socket.emit('count', countdown)
-      console.log('Tiempo restante:', countdown);
     }
     if (countdown <= 0) {
       // El tiempo ha expirado, pasar al siguiente jugador automáticamente
+      palabra.value = ''
       endTurn();
       personas.value[currentPlayer.value].vidas--
       socket.emit('updateVidas', personas.value)     
       personas.value.forEach(persona => {
         if(persona.vidas === 0){
           noLive.value = [...noLive.value, persona.name]
-            noLive.value = new Set(noLive.value)
-            noLive.value =  [...noLive.value]
+          noLive.value = new Set(noLive.value)
+          noLive.value =  [...noLive.value]
             socket.emit('updateNoLive', noLive.value)
           }
         });
@@ -229,29 +223,33 @@ const timer = ()=>{
     //END
   }
   
-
+  
   socket.on('count', (data)=>{
     time.value = data
   })
   
-const resetTimer = () => {
-  clearInterval(countdownInterval);
-  timer()
-};
-
-watch(palabra, ()=>{
-  if(palabra.value.length <20){
-    socket.emit("online", palabra.value)
-  }
-})
-
-socket.on('endGame', ()=>{
-  endGame()
-})
-
-const endGame = ()=>{
-  clearInterval(animate)
-  clearInterval(countdownInterval);
+  const resetTimer = () => {
+    clearInterval(countdownInterval.value);
+    timer()
+  };
+  
+  watch(palabra, ()=>{
+    if(palabra.value.length <20){
+      socket.emit("online", palabra.value)
+    }
+  })
+  
+  socket.on('endGame', ()=>{
+    endGame()
+  })
+  
+  socket.on('sil', data=>{
+    console.log(data);
+    silaba.value = data
+  })
+  const endGame = ()=>{
+    clearInterval(animate)
+    clearInterval(countdownInterval.value);
   personas.value.forEach(person =>{
     if(!noLive.value.includes(person.name)){
       console.log(noLive.value);
@@ -286,7 +284,7 @@ const endGame = ()=>{
 
 
 const salida = ()=>{
-  clearInterval(countdownInterval);
+  clearInterval(countdownInterval.value);
   socket.emit('salida', props.name)
 }
 
@@ -297,20 +295,28 @@ onUnmounted(()=>{
 
 const init = ()=>{
   button.value = false
+  socket.emit("generate")
   socket.emit('inicio');
 }
 
 const endTurn = () => {
-  clearInterval(countdownInterval);
   socket.emit('endTurn');
+  clearInterval(countdownInterval.value);
 };
+
+
 const handleSubmit = ()=>{
+  console.log(words.includes(palabra.value));
   palabra.value= palabra.value.toLowerCase()
-  if(palabra.value.includes(silaba.value)){
-    endTurn()
-    socket.emit("generate")
-    palabra.value = ''
-    socket.emit("siguiente", contador.value)
+  if(palabra.value.match(silaba.value)){
+    if(words.includes(palabra.value)){
+      endTurn()
+      socket.emit("generate")
+      palabra.value = ''
+    }else{
+      errors.volume = 0.8
+      errors.play()
+    }
   }else{
     errors.volume = 0.8
     errors.play()
