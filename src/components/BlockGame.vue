@@ -1,6 +1,5 @@
 <script setup>
 import {words} from '../data/data.js'
-import {useRouter} from 'vue-router'
 import bombSound  from '../sound/bomba.mp3'
 import crono from '../sound/crono.mp3'
 import error from '../sound/error.mp3'
@@ -25,15 +24,13 @@ let angPer = ref([])
 let silaba = ref('')
 let personas = ref([])
 let personsName = ref([])
-let contador = ref(0);
 let time = ref(0)
 let ganador = ref('')
 let currentPlayer = ref(0);
 let countdownInterval = ref(null);
 let animate = null;
 let escala = true
-
-const router = useRouter();
+let wordused = ref([])
 const socket = io("https://serverboomparty.onrender.com/")    //PARA DEPLOY
 /* const socket = io("http://localhost:3002/") */
 
@@ -310,9 +307,15 @@ const handleSubmit = ()=>{
   palabra.value= palabra.value.toLowerCase()
   if(palabra.value.match(silaba.value)){
     if(words.includes(palabra.value)){
-      endTurn()
-      socket.emit("generate")
-      palabra.value = ''
+      if(!wordused.value.includes(palabra.value)){
+        endTurn()
+        socket.emit("generate")
+        wordused.value = [...wordused.value, palabra.value]
+        palabra.value = ''
+      }else{
+        errors.volume = 0.8
+        errors.play()
+      }
     }else{
       errors.volume = 0.8
       errors.play()
