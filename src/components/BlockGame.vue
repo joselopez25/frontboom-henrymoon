@@ -31,14 +31,24 @@ let countdownInterval = ref(null);
 let animate = null;
 let escala = true
 let wordused = ref([])
+let salButton= true
+let numeroPer = ref(0)
 const socket = io("https://serverboomparty.onrender.com/")    //PARA DEPLOY
 /* const socket = io("http://localhost:3002/") */
 
 const errors = new Audio(error)
 const bomb = new Audio(bombSound) 
 bomb.volume = 0.3
+let cronometro = new Audio(crono)
 const bombImg = new Image();
 bombImg.src = bomba
+
+socket.on('sound', ()=>{
+    if(noLive.value.length===personas.value.length-1)return
+    cronometro = new Audio(crono)
+    cronometro.volume = 0.3
+    cronometro.play()
+  })
 
 onMounted(() => {
   ctx.value = canvas.value.getContext('2d');  
@@ -53,6 +63,16 @@ onMounted(() => {
     ctx.value.textAlign = 'center'
     ctx.value.clearRect(centerX-15,centerY+65,70, 50)
     ctx.value.fillText(silaba.value,centerX+15,centerY+100)
+  })
+  watch(personas, ()=>{
+    numeroPer.value = personas.value.length
+  })
+
+  watch(numeroPer,()=>{
+    if(!salButton){
+      socket.emit('endGame')
+      salButton = true
+    }
   })
 
   inputs.value.disabled = true
@@ -117,12 +137,8 @@ onMounted(() => {
     user.value = data
   });
   
-  socket.on('sound', ()=>{
-    if(noLive.value.length===personas.value.length-1)return
-    let cronometro = new Audio(crono)
-    cronometro.volume = 0.3
-    cronometro.play()
-  })
+  
+  
   
   socket.on('changeTurn', (nextPlayer) => {
     if(personas.value.length==1 || noLive.value.length===personas.value.length-1){
@@ -142,6 +158,7 @@ onMounted(() => {
   });
     
   const vidas =()=>{
+    if(noLive.value.length===personas.value.length-1)return
     personas.value.forEach((persona,index) => {
       
       const crz = new Image();
@@ -156,6 +173,7 @@ onMounted(() => {
   }
   
   socket.on('updateVidas',(data)=>{
+    if(noLive.value.length===personas.value.length-1)return
     personas.value = data
     bomb.play();
     vidas()
@@ -245,6 +263,8 @@ const timer = ()=>{
     silaba.value = data
   })
   const endGame = ()=>{
+    cronometro.pause()
+    salButton= true
     clearInterval(animate)
     clearInterval(countdownInterval.value);
   personas.value.forEach(person =>{
@@ -281,17 +301,22 @@ const timer = ()=>{
 
 
 const salida = ()=>{
+  cronometro.pause()
   clearInterval(countdownInterval.value);
   socket.emit('salida', props.name)
 }
 
 onUnmounted(()=>{
+  cronometro.pause()
   button.value = true
+  salButton= true
   salida()
 })
 
+
 const init = ()=>{
   button.value = false
+  salButton = false
   socket.emit("generate")
   socket.emit('inicio');
 }
@@ -337,7 +362,9 @@ const handleSubmit = ()=>{
       <h3 v-if="props.name === turno">Es tu turno </h3>
       <h3 v-else>Es turno de: {{ turno }}</h3>
       <button class="play" v-if="props.name === 'Jose' && button" @click="init">Comenzar</button>
-      <router-link @click="salida" to="/" ><button  class="boton">Salir</button></router-link>
+      <div v-if="salButton">
+        <router-link  @click="salida" to="/" ><button  class="boton">Salir</button></router-link>
+      </div>
     </div>
     <canvas class="canvas" ref="canvas" width="1000" height="600" ></canvas>
       <fieldset ref="inputs" class="inputs">

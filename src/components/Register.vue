@@ -5,6 +5,7 @@ import {useRouter} from 'vue-router'
 const usuario = ref('')
 const user = ref('')
 const error = ref('')
+const partida = ref(false)
 const handleSubmit = (event)=>{
   event.preventDefault();
   user.value= usuario.value
@@ -17,20 +18,33 @@ const router = useRouter();
 
 const socket = io("https://serverboomparty.onrender.com/")  
 /* const socket = io("http://localhost:3002/") */
+
 socket.on('val', ()=>{
+  if(!partida.value){
   socket.emit("name", user.value)
+  }else{
+    error.value = 'Se esta jugando una partida'
+  }
 })
 
 socket.on('ingreso', ()=>{
-  router.push(`/game/${usuario.value}`)
+  if(!partida.value){
+    router.push(`/game/${usuario.value}`)
+  } else{
+    error.value = 'Se esta jugando una partida'
+  }
 })
 socket.on('inval',()=>{
   console.log('invalido');
   error.value = 'Ya existe alguien con tu ID'
 })
 
-onMounted(()=>{
-  /* location.reload() */
+socket.on('enpartida', ()=>{
+  partida.value = true
+})
+
+socket.on('endGame', ()=>{
+  partida.value = false
 })
 
 
