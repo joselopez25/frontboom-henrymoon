@@ -37,8 +37,8 @@ let numeroPer = ref(0)
 let primero = ref('')
 let email = ref('')
 let name = ref('')
-/* const socket = io("https://serverboomparty.onrender.com/") */    //PARA DEPLOY
-const socket = io("http://localhost:3005/")
+const socket = io("https://serverboomparty.onrender.com/")    //PARA DEPLOY
+/* const socket = io("http://localhost:3005/") */
 const route = useRoute()
 const errors = new Audio(error)
 const bomb = new Audio(bombSound) 
@@ -72,10 +72,6 @@ onMounted(() => {
     ctx.value.fillText(silaba.value,centerX+15,centerY+100)
   })
   watch(personas, ()=>{
-    if(personas.value){
-      primero.value = personas.value[0].email
-    }
-    console.log(personas.value[0].email);
     numeroPer.value = personas.value.length
   })
 
@@ -105,11 +101,9 @@ onMounted(() => {
       inputRef.value.focus()
     })
     socket.on('people', data=>{
-      console.log(data);
-      console.log('personas: ' + data);
+      primero.value = data[0].email
       ctx.value.clearRect(0,0,canvas.value?.width, canvas.value?.height)
       personas.value = data
-      primero.value = data[0].email
     data.forEach(persona =>{
       personsName.value = [...personsName.value, persona.name]
       personsName.value = new Set(personsName.value)
