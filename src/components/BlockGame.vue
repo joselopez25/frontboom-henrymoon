@@ -4,11 +4,12 @@ import bombSound  from '../sound/bomba.mp3'
 import crono from '../sound/crono.mp3'
 import error from '../sound/error.mp3'
 import { io } from "socket.io-client";
-import { ref, onMounted, onUnmounted, watch, onBeforeMount, nextTick} from 'vue';
+import { ref, onMounted, onUnmounted, watch, onBeforeMount, nextTick, onBeforeUnmount} from 'vue';
 import bomba from '../assets/bomba.png'
 import corz from '../assets/crz.png'
 import flecha from '../assets/flecha.png'
 import win from '../assets/win.png'
+import { useRoute } from 'vue-router';
 const inputRef = ref(null)
 const inputs = ref(null)
 let button = ref(true)
@@ -33,9 +34,12 @@ let escala = true
 let wordused = ref([])
 let salButton= true
 let numeroPer = ref(0)
-const socket = io("https://serverboomparty.onrender.com/")    //PARA DEPLOY
-/* const socket = io("http://localhost:3002/") */
-
+let primero = ref('')
+let email = ref('')
+let name = ref('')
+/* const socket = io("https://serverboomparty.onrender.com/") */    //PARA DEPLOY
+const socket = io("http://localhost:3005/")
+const route = useRoute()
 const errors = new Audio(error)
 const bomb = new Audio(bombSound) 
 bomb.volume = 0.3
@@ -51,8 +55,11 @@ socket.on('sound', ()=>{
   })
 
 onMounted(() => {
+  email.value = route.query.email
   ctx.value = canvas.value.getContext('2d');  
   socket.emit("name", props.name)
+  name.value = props.name.split(' ')[0]
+  console.log(name.value);
   const centerX = canvas.value.width / 2;
   const centerY = canvas.value.height / 2;
 
@@ -65,6 +72,10 @@ onMounted(() => {
     ctx.value.fillText(silaba.value,centerX+15,centerY+100)
   })
   watch(personas, ()=>{
+    if(personas.value){
+      primero.value = personas.value[0].email
+    }
+    console.log(personas.value[0].email);
     numeroPer.value = personas.value.length
   })
 
@@ -88,15 +99,17 @@ onMounted(() => {
         }
       });
       inputs.value.disabled = false
-      if(props.name !== turno.value || personas.value[currentPlayer.value].vidas===0){
+      if(name.value !== turno.value || personas.value[currentPlayer.value].vidas===0){
         inputs.value.disabled = true
       }
       inputRef.value.focus()
     })
     socket.on('people', data=>{
+      console.log(data);
       console.log('personas: ' + data);
-    ctx.value.clearRect(0,0,canvas.value?.width, canvas.value?.height)
-    personas.value = data
+      ctx.value.clearRect(0,0,canvas.value?.width, canvas.value?.height)
+      personas.value = data
+      primero.value = data[0].email
     data.forEach(persona =>{
       personsName.value = [...personsName.value, persona.name]
       personsName.value = new Set(personsName.value)
@@ -208,14 +221,14 @@ const timer = ()=>{
   if(noLive.value.length===personas.value.length-1){return}
   
   personas.value.forEach((person, index)=> {
-    if(person.name === props.name){
+    if(person.name === name.value){
       return currentPlayer.value = index
     }
   });
   let countdown = 10;
   countdownInterval.value = setInterval(() => {
     
-    if(props.name === turno.value){
+    if(name.value === turno.value){
       countdown--;
       socket.emit('count', countdown)
     }
@@ -271,6 +284,9 @@ const timer = ()=>{
     if(!noLive.value.includes(person.name)){
       console.log(noLive.value);
       console.log(person.name);
+      if(email.value === primero.value){
+        socket.emit('ganador', person)
+      }
       return ganador.value = person.name
     }
   })
@@ -281,7 +297,7 @@ const timer = ()=>{
   /*    ctx.value.fillRect(x-130,y+40,300, 25) */ 
   ctx.value.fillText('Ganador: ' + ganador.value, centerX,centerY)
   ctx.value.clearRect(0,0,canvas.value?.width, canvas.value?.height)
-  ctx.value.fillText('Ganador: ' + ganador.value, centerX,centerY+200)
+  ctx.value.fillText('Ganador: ' + ganador.value + '100pt', centerX,centerY+200)
 
   const winer = new Image();
   winer.src = win
@@ -303,7 +319,7 @@ const timer = ()=>{
 const salida = ()=>{
   cronometro.pause()
   clearInterval(countdownInterval.value);
-  socket.emit('salida', props.name)
+  socket.emit('salida', name.value)
 }
 
 onUnmounted(()=>{
@@ -316,7 +332,6 @@ onUnmounted(()=>{
 
 const init = ()=>{
   button.value = false
-  salButton = false
   socket.emit("generate")
   socket.emit('inicio');
 }
@@ -351,6 +366,13 @@ const handleSubmit = ()=>{
   }
 }
 
+onBeforeUnmount(() => {
+  socket.emit('salida', name.value)
+});
+
+
+
+
 
 </script>
 
@@ -359,12 +381,10 @@ const handleSubmit = ()=>{
     <div class="info">
       <h3>Palabra: {{ palVivo }}</h3>
       <h3>Tiempo: {{ time }}</h3>
-      <h3 v-if="props.name === turno">Es tu turno </h3>
+      <h3 v-if="name === turno">Es tu turno </h3>
       <h3 v-else>Es turno de: {{ turno }}</h3>
-      <button class="play" v-if="props.name === 'Jose' && button" @click="init">Comenzar</button>
-      <div v-if="salButton">
-        <router-link  @click="salida" to="/" ><button  class="boton">Salir</button></router-link>
-      </div>
+      <button class="play" v-if="email === primero && button" @click="init">Comenzar</button>
+      <router-link  @click="salida" to="/" ><button  class="boton">Salir</button></router-link>
     </div>
     <canvas class="canvas" ref="canvas" width="1000" height="600" ></canvas>
       <fieldset ref="inputs" class="inputs">

@@ -2,26 +2,40 @@
 import { onMounted, ref } from 'vue';
 import { io } from "socket.io-client";
 import {useRouter} from 'vue-router'
+import { useRoute } from 'vue-router';
 const usuario = ref('')
 const user = ref('')
 const error = ref('')
 const partida = ref(false)
-const handleSubmit = (event)=>{
+
+
+/* const props = defineProps({
+  userEmail: {
+    type: string
+  }
+}) */
+
+const route = useRoute()
+const router = useRouter();
+/* const socket = io("https://serverboomparty.onrender.com/") */  
+const socket = io("http://localhost:3005/")
+
+const email = route.query.email
+console.log(email);
+
+socket.emit('email', email)
+/* const handleSubmit = (event)=>{
   event.preventDefault();
   user.value= usuario.value
   socket.emit('val', user.value)
   
   console.log(user.value);
 }
-
-const router = useRouter();
-
-const socket = io("https://serverboomparty.onrender.com/")  
-/* const socket = io("http://localhost:3002/") */
-
-socket.on('val', ()=>{
+ */
+socket.on('val', (data)=>{
   if(!partida.value){
-  socket.emit("name", user.value)
+    console.log(data);
+    router.push(`/game/${data.name}?email=${data.email}`)
   }else{
     error.value = 'Se esta jugando una partida'
   }
@@ -29,7 +43,7 @@ socket.on('val', ()=>{
 
 socket.on('ingreso', ()=>{
   if(!partida.value){
-    router.push(`/game/${usuario.value}`)
+    
   } else{
     error.value = 'Se esta jugando una partida'
   }
@@ -51,10 +65,10 @@ socket.on('endGame', ()=>{
 </script>
 
 <template>
-  <label for="name">Nombre: </label>
+  <!-- <label for="name">Nombre: </label>
   <input class="input" id="name" placeholder="Ingresa tu nombre" v-model="usuario"/>
   <button class="ingreso" @click="handleSubmit" >Ingresar</button>
-  <p v-if="error" >{{ error }}</p>
+  <p v-if="error" >{{ error }}</p> -->
 </template>
 
 <style scoped>
