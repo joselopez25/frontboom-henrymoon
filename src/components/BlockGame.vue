@@ -291,7 +291,7 @@ const timer = ()=>{
   /*    ctx.value.fillRect(x-130,y+40,300, 25) */ 
   ctx.value.fillText('Ganador: ' + ganador.value, centerX,centerY)
   ctx.value.clearRect(0,0,canvas.value?.width, canvas.value?.height)
-  ctx.value.fillText('Ganador: ' + ganador.value + '100pt', centerX,centerY+200)
+  ctx.value.fillText('Ganador: ' + ganador.value + ' 100pts', centerX,centerY+200)
 
   const winer = new Image();
   winer.src = win
