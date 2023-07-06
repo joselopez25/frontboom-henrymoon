@@ -17,8 +17,8 @@ const partida = ref(false)
 
 const route = useRoute()
 const router = useRouter();
-/* const socket = io("https://serverboomparty.onrender.com/") */  
-const socket = io("http://localhost:3005/")
+const socket = io("https://serverboomparty.onrender.com/")  
+/* const socket = io("http://localhost:3005/") */
 
 const email = route.query.email
 console.log(email);
